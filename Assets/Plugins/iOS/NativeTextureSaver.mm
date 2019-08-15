@@ -41,7 +41,11 @@ static void MBEReleaseDataCallback(void *info, const void *data, size_t size)
 
 + (void)saveTexture:(id<MTLTexture>)texture
 {
-    NSAssert(texture.pixelFormat == MTLPixelFormatRGBA8Unorm, @"Pixel format of texture must be MTLPixelFormatBGRA8Unorm to create UIImage.");
+    // NSAssert(texture.pixelFormat == MTLPixelFormatRGBA8Unorm, @"Pixel format of texture must be MTLPixelFormatBGRA8Unorm to create UIImage.");
+    if (texture == NULL)
+    {
+        return;
+    }
 
     CGSize imageSize = CGSizeMake(texture.width, texture.height);
     size_t imageByteCount = imageSize.width * imageSize.height * 4;
@@ -92,13 +96,13 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
     {
         case kUnityGfxDeviceEventInitialize:
         {
-            s_RendererType = s_Graphics->GetRenderer();
+            // s_RendererType = s_Graphics->GetRenderer();
             //TODO: ユーザー初期化コード
             break;
         }
         case kUnityGfxDeviceEventShutdown:
         {
-            s_RendererType = kUnityGfxRendererNull;
+            // s_RendererType = kUnityGfxRendererNull;
             //TODO: ユーザーシャットダウンコード
             break;
         }
@@ -137,4 +141,10 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 {
     s_Graphics->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
+}
+
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _AttachPlugin()
+{
+    NSLog(@"Attaching plugin load.");
+    UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
 }

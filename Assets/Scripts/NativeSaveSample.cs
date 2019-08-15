@@ -18,6 +18,8 @@ public class NativeSaveSample : MonoBehaviour
 
     private void Awake()
     {
+        _AttachPlugin();
+
         _buffer = new RenderTexture(Screen.width, Screen.height, 0);
         _buffer.Create();
 
@@ -78,15 +80,25 @@ public class NativeSaveSample : MonoBehaviour
         // Debug.Log("Buffer is ");
         // Debug.Log(buf);
 
-        // System.IntPtr ptr = _buffer.GetNativeTexturePtr();
-        // System.IntPtr ptr = _texture.GetNativeTexturePtr();
-        System.IntPtr ptr = _buffer.colorBuffer.GetNativeRenderBufferPtr();
-        Debug.Log("Pointer is ");
-        Debug.Log(ptr);
+        System.IntPtr ptr1 = _buffer.GetNativeTexturePtr();
+        System.IntPtr ptr2 = _texture.GetNativeTexturePtr();
+        System.IntPtr ptr3 = _buffer.colorBuffer.GetNativeRenderBufferPtr();
 
-        _SaveTextureImpl(ptr);
+        Debug.Log("ptr1 is null? " + (ptr1 == System.IntPtr.Zero));
+        Debug.Log("ptr2 is null? " + (ptr2 == System.IntPtr.Zero));
+        Debug.Log("ptr3 is null? " + (ptr3 == System.IntPtr.Zero));
+
+        RenderTexture tmp = RenderTexture.active;
+        RenderTexture.active = _buffer;
+
+        _SaveTextureImpl(_buffer.colorBuffer.GetNativeRenderBufferPtr());
+
+        RenderTexture.active = tmp;
     }
 
     [DllImport("__Internal")]
     static private extern void _SaveTextureImpl(System.IntPtr texture);
+
+    [DllImport("__Internal")]
+    static private extern void _AttachPlugin();
 }
