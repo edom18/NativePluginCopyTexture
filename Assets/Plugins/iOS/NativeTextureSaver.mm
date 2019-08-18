@@ -1,10 +1,13 @@
 #import <Foundation/Foundation.h>
 #import <Photos/Photos.h>
 #import <Metal/Metal.h>
+#import <CoreImage/CoreImage.h>
+//#import "QuartzCore/CIFilter.h"
 
 #include "Unity/IUnityInterface.h"
 #include "Unity/IUnityGraphics.h"
 #include "Unity/IUnityGraphicsMetal.h"
+#import "nativetexturesaver-Swift.h"
 
 #import "CaptureCallback.h"
 
@@ -43,42 +46,45 @@ static void MBEReleaseDataCallback(void *info, const void *data, size_t size)
 
 + (void)saveTexture:(id<MTLTexture>)texture
 {
-    CGSize imageSize = CGSizeMake(texture.width, texture.height);
-    size_t imageByteCount = imageSize.width * imageSize.height * 4;
+//    CGSize imageSize = CGSizeMake(texture.width, texture.height);
+//    size_t imageByteCount = imageSize.width * imageSize.height * 4;
+//
+//    void *imageBytes = malloc(imageByteCount);
+//
+//    NSUInteger bytesPerRow = imageSize.width * 4;
+//    MTLRegion region = MTLRegionMake2D(0, 0, imageSize.width, imageSize.height);
+//
+//    [texture getBytes:imageBytes bytesPerRow:bytesPerRow fromRegion:region mipmapLevel:0];
+//
+//    CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, imageBytes, imageByteCount, MBEReleaseDataCallback);
+//
+//    int bitsPerComponent = 8;
+//    int bitsPerPixel = 32;
+//
+//    CGColorSpaceRef colorSpaceRef = CGColorSpaceCreateDeviceRGB();
+//    CGBitmapInfo bitmapInfo = kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big;
+//    CGColorRenderingIntent renderingIntent = kCGRenderingIntentDefault;
+//    CGImageRef imageRef = CGImageCreate(imageSize.width,
+//                                        imageSize.height,
+//                                        bitsPerComponent,
+//                                        bitsPerPixel,
+//                                        bytesPerRow,
+//                                        colorSpaceRef,
+//                                        bitmapInfo,
+//                                        provider,
+//                                        NULL,
+//                                        false,
+//                                        renderingIntent);
 
-    void *imageBytes = malloc(imageByteCount);
+//    UIImage *image = [UIImage imageWithCGImage:imageRef scale:0.0 orientation:UIImageOrientationDownMirrored];
 
-    NSUInteger bytesPerRow = imageSize.width * 4;
-    MTLRegion region = MTLRegionMake2D(0, 0, imageSize.width, imageSize.height);
+//    CFRelease(provider);
+//    CFRelease(colorSpaceRef);
+//    CFRelease(imageRef);
 
-    [texture getBytes:imageBytes bytesPerRow:bytesPerRow fromRegion:region mipmapLevel:0];
-
-    CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, imageBytes, imageByteCount, MBEReleaseDataCallback);
-
-    int bitsPerComponent = 8;
-    int bitsPerPixel = 32;
-
-    CGColorSpaceRef colorSpaceRef = CGColorSpaceCreateDeviceRGB();
-    CGBitmapInfo bitmapInfo = kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big;
-    CGColorRenderingIntent renderingIntent = kCGRenderingIntentDefault;
-    CGImageRef imageRef = CGImageCreate(imageSize.width,
-                                        imageSize.height,
-                                        bitsPerComponent,
-                                        bitsPerPixel,
-                                        bytesPerRow,
-                                        colorSpaceRef,
-                                        bitmapInfo,
-                                        provider,
-                                        NULL,
-                                        false,
-                                        renderingIntent);
-
-    UIImage *image = [UIImage imageWithCGImage:imageRef scale:0.0 orientation:UIImageOrientationDownMirrored];
-
-    CFRelease(provider);
-    CFRelease(colorSpaceRef);
-    CFRelease(imageRef);
-
+//    UIImage *image = [UIImage imageWithCIImage:[CIImage imageWithMTLTexture:texture options:nil]];
+    UIImage *image = [MTLTextureConverter convertWithTexture:texture];
+    
     CaptureCallback *callback = [[CaptureCallback alloc] initWithObjectName:@"obj" methodName:@"method"];
 
     UIImageWriteToSavedPhotosAlbum(image, callback, @selector(savingImageIsFinished:didFinishSavingWithError:contextInfo:), nil);
@@ -118,18 +124,21 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
 extern "C" void _SaveTextureImpl(unsigned char* mtlTexture)
 {
     id<MTLTexture> tex = (__bridge_transfer id<MTLTexture>)(void*)mtlTexture;
-
+    
     NSLog(@"%@", tex);
-
-    if (tex.pixelFormat != MTLPixelFormatRGBA8Unorm)
-    {
-        tex = [tex newTextureViewWithPixelFormat:MTLPixelFormatRGBA8Unorm];
-    }
-
+    
+    NSLog(@"%d -------- %d", (int)tex.width, (int)tex.height);
+    
+//    if (tex.pixelFormat != MTLPixelFormatRGBA8Unorm)
+//    {
+//        tex = [tex newTextureViewWithPixelFormat:MTLPixelFormatRGBA8Unorm];
+//    }
+    
     // if (tex.pixelFormat != MTLPixelFormatBGRA8Unorm_sRGB) {
     // id<MTLTexture> texture = (id<MTLTexture>)(size_t)texRef;
     // id<MTLTexture> texture = (__bridge_transfer id<MTLTexture>)(void*)texRef;
     [NativeTextureSaver saveTexture:tex];
+    
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces)
