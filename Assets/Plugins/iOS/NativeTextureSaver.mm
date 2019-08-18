@@ -15,6 +15,8 @@ static IUnityGraphicsMetal* s_MetalGraphics = 0;
 static IUnityInterfaces*    s_UnityInterfaces  = 0;
 static IUnityGraphics*      s_Graphics = 0;
 
+static bool initialized = false;
+
 extern "C" void _RequestCameraRollPermission()
 {
     [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) { }];
@@ -97,13 +99,13 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
         case kUnityGfxDeviceEventInitialize:
         {
             // s_RendererType = s_Graphics->GetRenderer();
-            //TODO: ユーザー初期化コード
+            initialized = false;
             break;
         }
         case kUnityGfxDeviceEventShutdown:
         {
             // s_RendererType = kUnityGfxRendererNull;
-            //TODO: ユーザーシャットダウンコード
+            initialized = false;
             break;
         }
         case kUnityGfxDeviceEventBeforeReset:
@@ -119,10 +121,10 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
     };
 }
 
-extern "C" void _SaveTextureImpl(void *colorBuffer)
+extern "C" void _SaveTextureImpl(uintptr_t texRef)
 {
-    id<MTLTexture> texture = s_MetalGraphics->TextureFromRenderBuffer((UnityRenderBuffer)colorBuffer);
-    // id<MTLTexture> texture = (__bridge_transfer id<MTLTexture>)(void*)ptr;
+    id<MTLTexture> texture = (id<MTLTexture>)(size_t)texRef;
+    // id<MTLTexture> texture = (__bridge_transfer id<MTLTexture>)(void*)texRef;
     [NativeTextureSaver saveTexture:texture];
 }
 
@@ -130,9 +132,9 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
 {
     NSLog(@"==================== Plugin has been loaded ====================");
 
-    s_UnityInterfaces   = unityInterfaces;
-    s_Graphics          = s_UnityInterfaces->Get<IUnityGraphics>();
-    s_MetalGraphics     = s_UnityInterfaces->Get<IUnityGraphicsMetal>();
+    s_UnityInterfaces = unityInterfaces;
+    s_Graphics        = s_UnityInterfaces->Get<IUnityGraphics>();
+    s_MetalGraphics   = s_UnityInterfaces->Get<IUnityGraphicsMetal>();
 
     s_Graphics->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
     OnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
@@ -147,4 +149,16 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _AttachPlugin()
 {
     NSLog(@"Attaching plugin load.");
     UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
+}
+
+extern "C" uintptr_t UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _GetNativeTexturePtr(int width, int height)
+{
+    MTLTextureDescriptor *descriptor = [[MTLTextureDescriptor alloc] init];
+    descriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    descriptor.width = width;
+    descriptor.height = height;
+    
+    id<MTLTexture> texture = [s_MetalGraphics->MetalDevice() newTextureWithDescriptor:descriptor];
+
+    return (uintptr_t)texture;
 }
