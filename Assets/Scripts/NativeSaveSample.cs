@@ -19,16 +19,16 @@ public class NativeSaveSample : MonoBehaviour
     {
         _AttachPlugin();
 
-        System.IntPtr ptr = _GetNativeTexturePtr(Screen.width, Screen.height);
+        // System.IntPtr ptr = _GetNativeTexturePtr(Screen.width, Screen.height);
 
-        if (ptr == System.IntPtr.Zero)
-        {
-            Debug.Log("Returned pointer is null.");
-        }
-        else
-        {
-            _texture = Texture2D.CreateExternalTexture(Screen.width, Screen.height, TextureFormat.BGRA32, false, false, ptr);
-        }
+        // if (ptr == System.IntPtr.Zero)
+        // {
+        //     Debug.Log("Returned pointer is null.");
+        // }
+        // else
+        // {
+        //     _texture = Texture2D.CreateExternalTexture(Screen.width, Screen.height, TextureFormat.BGRA32, false, false, ptr);
+        // }
 
         _buffer = new RenderTexture(Screen.width, Screen.height, 0);
         _buffer.Create();
@@ -70,8 +70,8 @@ public class NativeSaveSample : MonoBehaviour
 
         Camera.main.RemoveCommandBuffer(CameraEvent.BeforeImageEffects, _commandBuffer);
 
-        // _image.texture = _buffer;
-        _image.texture = _texture;
+        _image.texture = _buffer;
+        // _image.texture = _texture;
     }
 #endif
 
@@ -97,17 +97,16 @@ public class NativeSaveSample : MonoBehaviour
         // Debug.Log("ptr2 is null? " + (ptr2 == System.IntPtr.Zero));
         // Debug.Log("ptr3 is null? " + (ptr3 == System.IntPtr.Zero));
 
-        RenderTexture tmp = RenderTexture.active;
-        RenderTexture.active = _buffer;
-        _texture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
-        RenderTexture.active = tmp;
+        // RenderTexture tmp = RenderTexture.active;
+        // RenderTexture.active = _buffer;
+        // _texture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
+        // RenderTexture.active = tmp;
 
         Debug.Log("Will show the texture.");
 
-        _image.texture = _texture;
+        _image.texture = _buffer;
 
-        // _SaveTextureImpl(_buffer.colorBuffer.GetNativeRenderBufferPtr());
-        _SaveTextureImpl(_texture.GetNativeTexturePtr());
+        _SaveTextureImpl(_buffer.GetNativeTexturePtr());
         // GL.InvalidateState();
     }
 

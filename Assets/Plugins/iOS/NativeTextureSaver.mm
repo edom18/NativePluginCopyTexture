@@ -43,12 +43,6 @@ static void MBEReleaseDataCallback(void *info, const void *data, size_t size)
 
 + (void)saveTexture:(id<MTLTexture>)texture
 {
-    // NSAssert(texture.pixelFormat == MTLPixelFormatRGBA8Unorm, @"Pixel format of texture must be MTLPixelFormatBGRA8Unorm to create UIImage.");
-    if (texture == NULL)
-    {
-        return;
-    }
-
     CGSize imageSize = CGSizeMake(texture.width, texture.height);
     size_t imageByteCount = imageSize.width * imageSize.height * 4;
 
@@ -121,11 +115,21 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
     };
 }
 
-extern "C" void _SaveTextureImpl(uintptr_t texRef)
+extern "C" void _SaveTextureImpl(unsigned char* mtlTexture)
 {
-    id<MTLTexture> texture = (id<MTLTexture>)(size_t)texRef;
+    id<MTLTexture> tex = (__bridge_transfer id<MTLTexture>)(void*)mtlTexture;
+
+    NSLog(@"%@", tex);
+
+    if (tex.pixelFormat != MTLPixelFormatRGBA8Unorm)
+    {
+        tex = [tex newTextureViewWithPixelFormat:MTLPixelFormatRGBA8Unorm];
+    }
+
+    // if (tex.pixelFormat != MTLPixelFormatBGRA8Unorm_sRGB) {
+    // id<MTLTexture> texture = (id<MTLTexture>)(size_t)texRef;
     // id<MTLTexture> texture = (__bridge_transfer id<MTLTexture>)(void*)texRef;
-    [NativeTextureSaver saveTexture:texture];
+    [NativeTextureSaver saveTexture:tex];
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces)
