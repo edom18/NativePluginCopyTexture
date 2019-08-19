@@ -121,6 +121,27 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
     };
 }
 
+id<MTLTexture> CopyTexture(id<MTLTexture> source)
+{
+    MTLTextureDescriptor *descriptor = [[MTLTextureDescriptor alloc] init];
+    descriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    descriptor.width = source.width;
+    descriptor.height = source.height;
+    
+    id<MTLTexture> texture = [s_MetalGraphics->MetalDevice() newTextureWithDescriptor:descriptor];
+
+    id<MTLCommandQueue> queue = [s_MetalGraphics->MetalDevice() newCommandQueue];
+    id<MTLCommandBuffer> buffer = [queue commandBuffer];
+    id<MTLBlitCommandEncoder> encoder = [buffer blitCommandEncoder];
+    encoder copy:source sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) to:texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+    [encoder endEncoding];
+    [buffer commit];
+    [buffer waitUntilCompleted];
+
+    return texture;
+}
+
+
 extern "C" void _SaveTextureImpl(unsigned char* mtlTexture)
 {
     id<MTLTexture> tex = (__bridge_transfer id<MTLTexture>)(void*)mtlTexture;
