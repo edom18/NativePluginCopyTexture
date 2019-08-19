@@ -152,7 +152,7 @@ id<MTLTexture> CopyTexture(id<MTLTexture> source)
 
 extern "C" void _SaveTextureImpl(unsigned char* mtlTexture)
 {
-    id<MTLTexture> tex = (__bridge_transfer id<MTLTexture>)(void*)mtlTexture;
+    id<MTLTexture> tex = (__bridge id<MTLTexture>)(void*)mtlTexture;
     
     NSLog(@"%@", tex);
     
