@@ -103,19 +103,24 @@ public class NativeTextureSaver : MonoBehaviour
 
         Debug.Log("Will show the texture.");
 
-        _SaveTextureImpl(_buffer.GetNativeTexturePtr());
+        _SaveTextureImpl(_buffer.GetNativeTexturePtr(), gameObject.name, nameof(CallbackFromSaver));
 
         _isSaving = false;
     }
 
+    private void CallbackFromSaver()
+    {
+        Debug.Log("Callback from native plugin.");
+    }
+
 #if UNITY_EDITOR
     static private void _AttachPlugin() { }
-    static private void _SaveTextureImpl(System.IntPtr texture) { }
+    static private void _SaveTextureImpl(System.IntPtr texture, string objectName, string methodName) { }
 #elif UNITY_IOS
     [DllImport("__Internal")]
     static private extern void _AttachPlugin();
 
     [DllImport("__Internal")]
-    static private extern void _SaveTextureImpl(System.IntPtr texture);
+    static private extern void _SaveTextureImpl(System.IntPtr texture, string objectName, string methodName);
 #endif
 }

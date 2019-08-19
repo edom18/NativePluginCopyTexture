@@ -78,7 +78,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _AttachPlugin()
 ///
 /// Save the texture that made from Metal to the file.
 ///
-extern "C" void _SaveTextureImpl(unsigned char* mtlTexture)
+extern "C" void _SaveTextureImpl(unsigned char* mtlTexture, const char* objectName, const char* methodName)
 {
     id<MTLTexture> tex = (__bridge id<MTLTexture>)(void*)mtlTexture;
     
@@ -88,7 +88,9 @@ extern "C" void _SaveTextureImpl(unsigned char* mtlTexture)
     
     UIImage *image = [MTLTextureConverter convertWithTexture:tex];
     
-    CaptureCallback *callback = [[CaptureCallback alloc] initWithObjectName:@"obj" methodName:@"method"];
+    NSString* objName = [NSString stringWithCString:objectName encoding:NSUTF8StringEncoding];
+    NSString* metName = [NSString stringWithCString:methodName encoding:NSUTF8StringEncoding];
+    CaptureCallback *callback = [[CaptureCallback alloc] initWithObjectName:objName methodName:metName];
 
     UIImageWriteToSavedPhotosAlbum(image, callback, @selector(savingImageIsFinished:didFinishSavingWithError:contextInfo:), nil);
 }
