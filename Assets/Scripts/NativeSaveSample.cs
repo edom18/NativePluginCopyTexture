@@ -14,10 +14,13 @@ public class NativeSaveSample : MonoBehaviour
     private CommandBuffer _commandBuffer = null;
 
     private Texture2D _texture = null;
+    private bool _isSaving = false;
 
     private void Awake()
     {
+#if !UNITY_EDITOR
         _AttachPlugin();
+#endif
 
         // System.IntPtr ptr = _GetNativeTexturePtr(Screen.width, Screen.height);
 
@@ -41,6 +44,11 @@ public class NativeSaveSample : MonoBehaviour
 
     private void Update()
     {
+        if (_isSaving)
+        {
+            return;
+        }
+
 #if UNITY_EDITOR
         if (Input.GetMouseButtonDown(0))
         {
@@ -53,11 +61,7 @@ public class NativeSaveSample : MonoBehaviour
             Touch touch = Input.GetTouch(0);
             if (touch.phase == TouchPhase.Began)
             {
-                Debug.Log("Will capture the screen.");
-
-                Camera.main.AddCommandBuffer(CameraEvent.BeforeImageEffects, _commandBuffer);
-
-                StartCoroutine(SaveTexture());
+                StartSaveTexture();
             }
         }
 #endif
@@ -75,6 +79,22 @@ public class NativeSaveSample : MonoBehaviour
     }
 #endif
 
+    private void StartSaveTexture()
+    {
+        if (_isSaving)
+        {
+            return;
+        }
+
+        _isSaving = true;
+
+        Debug.Log("Will capture the screen.");
+
+        Camera.main.AddCommandBuffer(CameraEvent.BeforeImageEffects, _commandBuffer);
+
+        StartCoroutine(SaveTexture());
+    }
+
     private IEnumerator SaveTexture()
     {
         yield return new WaitForEndOfFrame();
@@ -83,30 +103,21 @@ public class NativeSaveSample : MonoBehaviour
 
         Camera.main.RemoveCommandBuffer(CameraEvent.BeforeImageEffects, _commandBuffer);
 
-        // _image.texture = _texture;
+        _image.texture = _buffer;
 
-        // RenderBuffer buf = _buffer.colorBuffer;
-        // Debug.Log("Buffer is ");
-        // Debug.Log(buf);
+        RenderTexture tmp = RenderTexture.active;
+        RenderTexture.active = _buffer;
 
-        // System.IntPtr ptr1 = _buffer.GetNativeTexturePtr();
-        // System.IntPtr ptr2 = _texture.GetNativeTexturePtr();
-        // System.IntPtr ptr3 = _buffer.colorBuffer.GetNativeRenderBufferPtr();
-
-        // Debug.Log("ptr1 is null? " + (ptr1 == System.IntPtr.Zero));
-        // Debug.Log("ptr2 is null? " + (ptr2 == System.IntPtr.Zero));
-        // Debug.Log("ptr3 is null? " + (ptr3 == System.IntPtr.Zero));
-
-        // RenderTexture tmp = RenderTexture.active;
-        // RenderTexture.active = _buffer;
-        // _texture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
-        // RenderTexture.active = tmp;
+        Texture2D texture = new Texture2D(_buffer.width, _buffer.height, TextureFormat.RGBA32, false);
+        texture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
+        RenderTexture.active = tmp;
 
         Debug.Log("Will show the texture.");
 
-        _image.texture = _buffer;
-
         _SaveTextureImpl(_buffer.GetNativeTexturePtr());
+
+        _isSaving = false;
+
         // GL.InvalidateState();
     }
 
