@@ -20,25 +20,6 @@ static IUnityGraphics*      s_Graphics = 0;
 
 static bool initialized = false;
 
-@interface NativeTextureSaver : NSObject
-
-+ (void)saveTexture:(id<MTLTexture>)texture;
-
-@end
-
-@implementation NativeTextureSaver
-
-+ (void)saveTexture:(id<MTLTexture>)texture
-{
-    UIImage *image = [MTLTextureConverter convertWithTexture:texture];
-    
-    CaptureCallback *callback = [[CaptureCallback alloc] initWithObjectName:@"obj" methodName:@"method"];
-
-    UIImageWriteToSavedPhotosAlbum(image, callback, @selector(savingImageIsFinished:didFinishSavingWithError:contextInfo:), nil);
-}
-
-@end 
-
 static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType)
 {
     switch (eventType)
@@ -57,17 +38,66 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
         }
         case kUnityGfxDeviceEventBeforeReset:
         {
-            //TODO: ユーザー Direct3D 9 コード
+            // TODO: User Direct3D 9 code
             break;
         }
         case kUnityGfxDeviceEventAfterReset:
         {
-            //TODO: ユーザー Direct3D 9 コード
+            // TODO: User Direct3D 9 code
             break;
         }
     };
 }
 
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces)
+{
+    NSLog(@"==================== Plugin has been loaded ====================");
+
+    s_UnityInterfaces = unityInterfaces;
+    s_Graphics        = s_UnityInterfaces->Get<IUnityGraphics>();
+    s_MetalGraphics   = s_UnityInterfaces->Get<IUnityGraphicsMetal>();
+
+    s_Graphics->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
+    OnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
+}
+
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
+{
+    s_Graphics->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
+}
+
+///
+/// Attach the functions to the callback of plugin loaded event.
+///
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _AttachPlugin()
+{
+    NSLog(@"Attaching plugin load.");
+    UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
+}
+
+///
+/// Save the texture that made from Metal to the file.
+///
+extern "C" void _SaveTextureImpl(unsigned char* mtlTexture)
+{
+    id<MTLTexture> tex = (__bridge id<MTLTexture>)(void*)mtlTexture;
+    
+    NSLog(@"%@", tex);
+    
+    NSLog(@"%d -------- %d", (int)tex.width, (int)tex.height);
+    
+    UIImage *image = [MTLTextureConverter convertWithTexture:tex];
+    
+    CaptureCallback *callback = [[CaptureCallback alloc] initWithObjectName:@"obj" methodName:@"method"];
+
+    UIImageWriteToSavedPhotosAlbum(image, callback, @selector(savingImageIsFinished:didFinishSavingWithError:contextInfo:), nil);
+}
+
+///
+/// Copy MTLTexture to a new one.
+/// This function won't be used for this demo.
+/// But I don't remove this code. It will help you.
+///
 id<MTLTexture> CopyTexture(id<MTLTexture> source)
 {
     MTLTextureDescriptor *descriptor = [[MTLTextureDescriptor alloc] init];
@@ -89,55 +119,10 @@ id<MTLTexture> CopyTexture(id<MTLTexture> source)
             destinationSlice:0
             destinationLevel:0
            destinationOrigin:MTLOriginMake(0, 0, 0)];
+
     [encoder endEncoding];
     [buffer commit];
     [buffer waitUntilCompleted];
 
     return texture;
-}
-
-extern "C" void _SaveTextureImpl(unsigned char* mtlTexture)
-{
-    id<MTLTexture> tex = (__bridge id<MTLTexture>)(void*)mtlTexture;
-    
-    NSLog(@"%@", tex);
-    
-    NSLog(@"%d -------- %d", (int)tex.width, (int)tex.height);
-    
-    [NativeTextureSaver saveTexture:tex];
-}
-
-extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces)
-{
-    NSLog(@"==================== Plugin has been loaded ====================");
-
-    s_UnityInterfaces = unityInterfaces;
-    s_Graphics        = s_UnityInterfaces->Get<IUnityGraphics>();
-    s_MetalGraphics   = s_UnityInterfaces->Get<IUnityGraphicsMetal>();
-
-    s_Graphics->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
-    OnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
-}
-
-extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
-{
-    s_Graphics->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
-}
-
-extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _AttachPlugin()
-{
-    NSLog(@"Attaching plugin load.");
-    UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
-}
-
-extern "C" uintptr_t UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _GetNativeTexturePtr(int width, int height)
-{
-    MTLTextureDescriptor *descriptor = [[MTLTextureDescriptor alloc] init];
-    descriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    descriptor.width = width;
-    descriptor.height = height;
-    
-    id<MTLTexture> texture = [s_MetalGraphics->MetalDevice() newTextureWithDescriptor:descriptor];
-
-    return (uintptr_t)texture;
 }
