@@ -5,46 +5,22 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Rendering;
 
-public class NativeSaveSample : MonoBehaviour
+public class NativeTextureSaver : MonoBehaviour
 {
-    [SerializeField]
+    [SerializeField, Tooltip("For preview the render texture.")]
     private RawImage _image = null;
 
     private RenderTexture _buffer = null;
     private CommandBuffer _commandBuffer = null;
 
-    private Texture2D _texture = null;
     private bool _isSaving = false;
+    private YieldInstruction _waitForEndOfFrame = new WaitForEndOfFrame();
 
+    #region ### MonoBehaviour ###
     private void Awake()
     {
-#if !UNITY_EDITOR
         _AttachPlugin();
-#endif
-
-        // System.IntPtr ptr = _GetNativeTexturePtr(Screen.width, Screen.height);
-
-        // if (ptr == System.IntPtr.Zero)
-        // {
-        //     Debug.Log("Returned pointer is null.");
-        // }
-        // else
-        // {
-        //     _texture = Texture2D.CreateExternalTexture(Screen.width, Screen.height, TextureFormat.BGRA32, false, false, ptr);
-        // }
-
         SetupBuffer();
-    }
-
-    private void SetupBuffer()
-    {
-        _commandBuffer = new CommandBuffer();
-        _commandBuffer.name = "CaptureScreen";
-
-        _buffer = new RenderTexture(Screen.width, Screen.height, 0);
-        _buffer.Create();
-
-        _commandBuffer.Blit(BuiltinRenderTextureType.CurrentActive, _buffer);
     }
 
     private void Update()
@@ -57,9 +33,7 @@ public class NativeSaveSample : MonoBehaviour
 #if UNITY_EDITOR
         if (Input.GetMouseButtonDown(0))
         {
-            SetupBuffer();
-            Camera.main.AddCommandBuffer(CameraEvent.BeforeImageEffects, _commandBuffer);
-            StartCoroutine(EditorSaveTexture());
+            StartSaveTexture();
         }
 #else
         if (Input.touchCount > 0)
@@ -72,18 +46,21 @@ public class NativeSaveSample : MonoBehaviour
         }
 #endif
     }
+    #endregion ### MonoBehaviour ###
 
-#if UNITY_EDITOR
-    private IEnumerator EditorSaveTexture()
+    /// <summary>
+    /// Set up a command buffer for capturing the scene.
+    /// </summary>
+    private void SetupBuffer()
     {
-        yield return new WaitForEndOfFrame();
+        _commandBuffer = new CommandBuffer();
+        _commandBuffer.name = "CaptureScreen";
 
-        Camera.main.RemoveCommandBuffer(CameraEvent.BeforeImageEffects, _commandBuffer);
+        _buffer = new RenderTexture(Screen.width, Screen.height, 0);
+        _buffer.Create();
 
-        _image.texture = _buffer;
-        // _image.texture = _texture;
+        _commandBuffer.Blit(BuiltinRenderTextureType.CurrentActive, _buffer);
     }
-#endif
 
     private void StartSaveTexture()
     {
@@ -103,7 +80,7 @@ public class NativeSaveSample : MonoBehaviour
 
     private IEnumerator SaveTexture()
     {
-        yield return new WaitForEndOfFrame();
+        yield return _waitForEndOfFrame;
 
         Debug.Log("Save texture to the file.");
 
@@ -114,10 +91,14 @@ public class NativeSaveSample : MonoBehaviour
         RenderTexture tmp = RenderTexture.active;
         RenderTexture.active = _buffer;
 
+        // ReadPixels needs to be called for uploading buffer data to the GPU (Maybe I think)
+        // If you delete these lines, the native plugin will miss to load pixels from the buffer.
         Texture2D texture = new Texture2D(_buffer.width, _buffer.height, TextureFormat.RGBA32, false);
         texture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
         RenderTexture.active = tmp;
 
+        // Use texture if needed.
+        // This demo don't have to use the texture so destroy it immediatory.
         Destroy(texture);
 
         Debug.Log("Will show the texture.");
@@ -125,16 +106,16 @@ public class NativeSaveSample : MonoBehaviour
         _SaveTextureImpl(_buffer.GetNativeTexturePtr());
 
         _isSaving = false;
-
-        // GL.InvalidateState();
     }
 
-    [DllImport("__Internal")]
-    static private extern void _SaveTextureImpl(System.IntPtr texture);
-
+#if UNITY_EDITOR
+    static private void _AttachPlugin() { }
+    static private void _SaveTextureImpl(System.IntPtr texture) { }
+#elif UNITY_IOS
     [DllImport("__Internal")]
     static private extern void _AttachPlugin();
 
     [DllImport("__Internal")]
-    static private extern System.IntPtr _GetNativeTexturePtr(int width, int height);
+    static private extern void _SaveTextureImpl(System.IntPtr texture);
+#endif
 }
