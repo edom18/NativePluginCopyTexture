@@ -118,6 +118,8 @@ public class NativeSaveSample : MonoBehaviour
         texture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
         RenderTexture.active = tmp;
 
+        Destroy(texture);
+
         Debug.Log("Will show the texture.");
 
         _SaveTextureImpl(_buffer.GetNativeTexturePtr());
