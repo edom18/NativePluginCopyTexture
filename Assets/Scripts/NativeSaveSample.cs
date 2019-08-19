@@ -32,12 +32,27 @@ public class NativeSaveSample : MonoBehaviour
         // {
         //     _texture = Texture2D.CreateExternalTexture(Screen.width, Screen.height, TextureFormat.BGRA32, false, false, ptr);
         // }
+    }
+
+    private void SetupBuffer()
+    {
+        if (_commandBuffer == null)
+        {
+            _commandBuffer = new CommandBuffer();
+            _commandBuffer.name = "CaptureScreen";
+        }
+        else
+        {
+            _commandBuffer.Clear();
+        }
+
+        if (_buffer != null)
+        {
+            _buffer.Release();
+        }
 
         _buffer = new RenderTexture(Screen.width, Screen.height, 0);
         _buffer.Create();
-
-        _commandBuffer = new CommandBuffer();
-        _commandBuffer.name = "CaptureScreen";
 
         _commandBuffer.Blit(BuiltinRenderTextureType.CurrentActive, _buffer);
     }
@@ -52,6 +67,7 @@ public class NativeSaveSample : MonoBehaviour
 #if UNITY_EDITOR
         if (Input.GetMouseButtonDown(0))
         {
+            SetupBuffer();
             Camera.main.AddCommandBuffer(CameraEvent.BeforeImageEffects, _commandBuffer);
             StartCoroutine(EditorSaveTexture());
         }
@@ -89,6 +105,8 @@ public class NativeSaveSample : MonoBehaviour
         _isSaving = true;
 
         Debug.Log("Will capture the screen.");
+
+        SetupBuffer();
 
         Camera.main.AddCommandBuffer(CameraEvent.BeforeImageEffects, _commandBuffer);
 
