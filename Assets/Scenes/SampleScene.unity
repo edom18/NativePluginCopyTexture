@@ -602,7 +602,7 @@ GameObject:
   - component: {fileID: 1959898307}
   - component: {fileID: 1959898306}
   m_Layer: 0
-  m_Name: NativeSaveSample
+  m_Name: NativeTextureSaver
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
