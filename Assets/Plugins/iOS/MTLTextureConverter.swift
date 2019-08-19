@@ -1,7 +1,4 @@
 //
-//    MTLTexture+Z.swift
-//    ZKit
-//
 //    The MIT License (MIT)
 //
 //    Copyright (c) 2016 Electricwoods LLC, Kaz Yoshikawa.
@@ -31,11 +28,10 @@ import MetalKit
 import GLKit
 import Accelerate
 
-class MTLTextureConverter : NSObject {
-    
+class MTLTextureConverter : NSObject
+{
     @objc static func convert(texture: MTLTexture) -> UIImage?
     {
-        
         assert(texture.pixelFormat == .bgra8Unorm)
         
         // read texture as byte array
@@ -54,12 +50,6 @@ class MTLTextureConverter : NSObject {
                                        height: vImagePixelCount(texture.height), width: vImagePixelCount(texture.width), rowBytes: rowBytes)
         let map: [UInt8] = [2, 1, 0, 3]
         vImagePermuteChannels_ARGB8888(&bgraBuffer, &rgbaBuffer, map, 0)
-        
-        // flipping image virtically
-//        let flippedBytes = bgraBytes // share the buffer
-//        var flippedBuffer = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: flippedBytes),
-//                                          height: vImagePixelCount(texture.height), width: vImagePixelCount(texture.width), rowBytes: rowBytes)
-//        vImageVerticalReflect_ARGB8888(&rgbaBuffer, &flippedBuffer, 0)
         
         // create CGImage with RGBA
         let colorScape = CGColorSpaceCreateDeviceRGB()
