@@ -82,10 +82,6 @@ extern "C" void _SaveTextureImpl(unsigned char* mtlTexture, const char* objectNa
 {
     id<MTLTexture> tex = (__bridge id<MTLTexture>)(void*)mtlTexture;
     
-    NSLog(@"%@", tex);
-    
-    NSLog(@"%d -------- %d", (int)tex.width, (int)tex.height);
-    
     UIImage *image = [MTLTextureConverter convertWithTexture:tex];
     
     NSString* objName = [NSString stringWithCString:objectName encoding:NSUTF8StringEncoding];
