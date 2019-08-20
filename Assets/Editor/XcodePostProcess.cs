@@ -22,12 +22,34 @@ public class XcodePostProcess : MonoBehaviour
 
         string target = proj.TargetGuidByName("Unity-iPhone");
 
-        // フレームワークを追加する
+        // Add a framework.
         proj.AddFrameworkToProject(target, "Photos.framework", false);
+
+        // Add settings for Swift.
         proj.AddBuildProperty(target, "SWIFT_VERSION", "4.0");
         proj.AddBuildProperty(target, "SWIFT_OBJC_BRIDGING_HEADER", "$(SRCROOT)/Libraries/Plugins/iOS/Bridge-Header.h");
 
-        // 反映させる
+        // Write back the settings.
         File.WriteAllText(projPath, proj.WriteToString());
+
+        SetupPlist(path);
+    }
+
+    /// <summary>
+    /// Set up Info.plist.
+    /// </summary>
+    /// <param name="path">Project path.</param>
+    static private void SetupPlist(string path)
+    {
+        string plistPath = Path.Combine(path, "Info.plist");
+        PlistDocument plist = new PlistDocument();
+        plist.ReadFromFile(plistPath);
+
+        if (!plist.root.values.ContainsKey("NSPhotoLibraryAddUsageDescription"))
+        {
+            plist.root.SetString("NSPhotoLibraryAddUsageDescription", "Use library for saving a texture.");
+        }
+
+        plist.WriteToFile(plistPath);
     }
 }
