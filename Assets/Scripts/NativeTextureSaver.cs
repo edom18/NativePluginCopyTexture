@@ -108,9 +108,9 @@ public class NativeTextureSaver : MonoBehaviour
         _isSaving = false;
     }
 
-    private void CallbackFromSaver()
+    private void CallbackFromSaver(string message)
     {
-        Debug.Log("Callback from native plugin.");
+        Debug.Log($"Callback from native plugin with message ${message}");
     }
 
 #if UNITY_EDITOR
