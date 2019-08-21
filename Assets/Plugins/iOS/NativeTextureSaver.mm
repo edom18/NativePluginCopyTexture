@@ -88,7 +88,90 @@ extern "C" void _SaveTextureImpl(unsigned char* mtlTexture, const char* objectNa
     NSString* metName = [NSString stringWithCString:methodName encoding:NSUTF8StringEncoding];
     CaptureCallback *callback = [[CaptureCallback alloc] initWithObjectName:objName methodName:metName];
 
-    UIImageWriteToSavedPhotosAlbum(image, callback, @selector(savingImageIsFinished:didFinishSavingWithError:contextInfo:), nil);
+//    [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
+//        [PHAssetChangeRequest creationRequestForAssetFromImage:image];
+//    } completionHandler:^(BOOL success, NSError * _Nullable error) {
+//        if (success)
+//        {
+//            NSLog(@"Image saved.");
+//        }
+//        else
+//        {
+//            NSLog(@"error in saving image : %@", error);
+//        }
+//    }];
+    
+    if (PHPhotoLibrary.authorizationStatus != PHAuthorizationStatusAuthorized)
+    {
+        [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) {
+            
+            if (status == PHAuthorizationStatusAuthorized)
+            {
+                // フォトライブラリに写真を保存するなど、実施したいことをここに書く
+            }
+            else if (status == PHAuthorizationStatusDenied)
+            {
+//                NSString* title = @"Failed to save image";
+//                NSString* message = @"Allow this app to access Photos.";
+//
+//                let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+//                let settingsAction = UIAlertAction(title: "Settings", style: .default, handler: { (_) -> Void in
+//                    guard let settingsURL = URL(string: UIApplication.openSettingsURLString ) else {
+//                        return
+//                    }
+//                    UIApplication.shared.open(settingsURL, options: [:], completionHandler: nil)
+//                })
+//                let closeAction: UIAlertAction = UIAlertAction(title: "Close", style: .cancel, handler: nil)
+//                alert.addAction(settingsAction)
+//                alert.addAction(closeAction)
+//                self.present(alert, animated: true, completion: nil)
+            }
+        }];
+        return;
+    }
+    
+    __block NSString* localId;
+    
+    // Add it to the photo library
+    [[PHPhotoLibrary sharedPhotoLibrary] performChanges:^{
+        PHAssetChangeRequest *assetChangeRequest = [PHAssetChangeRequest creationRequestForAssetFromImage:image];
+        
+        localId = assetChangeRequest.placeholderForCreatedAsset.localIdentifier;
+    } completionHandler:^(BOOL success, NSError *err) {
+        
+        if (!success)
+        {
+            NSLog(@"Error saving image: %@", [err localizedDescription]);
+            [callback savingImageIsFinished:nil
+                   didFinishSavingWithError:err];
+        }
+        else
+        {
+            PHFetchResult* assetResult = [PHAsset fetchAssetsWithLocalIdentifiers:@[localId] options:nil];
+            PHAsset *asset = assetResult.firstObject;
+            [PHImageManager.defaultManager requestImageDataForAsset:asset
+                                                            options:nil
+                                                      resultHandler:^(NSData *imageData, NSString *dataUTI, UIImageOrientation orientation, NSDictionary *info) {
+                                                          
+                                                            NSURL *fileUrl = [info objectForKey:@"PHImageFileURLKey"];
+                                                          
+                                                            if (fileUrl)
+                                                            {
+                                                                NSLog(@"Image path: %@", fileUrl.relativePath);
+                                                                [callback savingImageIsFinished:fileUrl
+                                                                       didFinishSavingWithError:nil];
+                                                            }
+                                                            else
+                                                            {
+                                                                NSLog(@"Error retrieving image filePath, heres whats available: %@", info);
+                                                                [callback savingImageIsFinished:nil
+                                                                       didFinishSavingWithError:nil];
+                                                            }
+                                                        }];
+        }
+    }];
+    
+//    UIImageWriteToSavedPhotosAlbum(image, callback, @selector(savingImageIsFinished:didFinishSavingWithError:contextInfo:), nil);
 }
 
 ///

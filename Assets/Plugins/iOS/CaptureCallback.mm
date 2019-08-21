@@ -28,5 +28,21 @@
         UnitySendMessage(objectName, methodName, "success");
     }
 }
+
+- (void)savingImageIsFinished:(NSURL *)path didFinishSavingWithError:(NSError *)error
+{
+    const char *objectName = [self.objectName UTF8String];
+    const char *methodName = [self.methodName UTF8String];
+    
+    if (error == nil)
+    {
+        UnitySendMessage(objectName, methodName, [path.absoluteString UTF8String]);
+    }
+    else
+    {
+        NSLog(@"Error in saving %@", error);
+        UnitySendMessage(objectName, methodName, [error.description UTF8String]);
+    }
+}
  
 @end

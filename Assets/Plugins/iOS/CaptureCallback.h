@@ -8,5 +8,6 @@
 - (id)initWithObjectName:(NSString *)_objectName methodName:(NSString *)_methodName;
  
 - (void)savingImageIsFinished:(UIImage *)_image didFinishSavingWithError:(NSError *)_error contextInfo:(void *)_contextInfo;
- 
+- (void)savingImageIsFinished:(NSURL *)path didFinishSavingWithError:(NSError *)error;
+
 @end
