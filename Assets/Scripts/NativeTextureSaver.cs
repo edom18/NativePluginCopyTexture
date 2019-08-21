@@ -93,8 +93,9 @@ public class NativeTextureSaver : MonoBehaviour
 
         // ReadPixels needs to be called for uploading buffer data to the GPU (Maybe I think)
         // If you delete these lines, the native plugin will miss to load pixels from the buffer.
-        Texture2D texture = new Texture2D(_buffer.width, _buffer.height, TextureFormat.RGBA32, false);
+        Texture2D texture = new Texture2D(_buffer.width, _buffer.height, TextureFormat.RGB24, false);
         texture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
+        texture.Apply();
         RenderTexture.active = tmp;
 
         // Use texture if needed.
