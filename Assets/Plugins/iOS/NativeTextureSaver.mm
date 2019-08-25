@@ -133,7 +133,7 @@ extern "C" void _SaveTextureImpl(unsigned char* mtlTexture, const char* objectNa
     __block NSString* localId;
     
     // Add it to the photo library
-    [[PHPhotoLibrary sharedPhotoLibrary] performChanges:^{
+    [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
         PHAssetChangeRequest *assetChangeRequest = [PHAssetChangeRequest creationRequestForAssetFromImage:image];
         
         localId = assetChangeRequest.placeholderForCreatedAsset.localIdentifier;
@@ -141,7 +141,7 @@ extern "C" void _SaveTextureImpl(unsigned char* mtlTexture, const char* objectNa
         
         if (!success)
         {
-            NSLog(@"Error saving image: %@", [err localizedDescription]);
+            NSLog(@"Error saving image: %@", err.localizedDescription);
             [callback savingImageIsFinished:nil
                    didFinishSavingWithError:err];
         }
