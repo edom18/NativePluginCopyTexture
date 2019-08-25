@@ -88,19 +88,6 @@ extern "C" void _SaveTextureImpl(unsigned char* mtlTexture, const char* objectNa
     NSString* metName = [NSString stringWithCString:methodName encoding:NSUTF8StringEncoding];
     CaptureCallback *callback = [[CaptureCallback alloc] initWithObjectName:objName methodName:metName];
 
-//    [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
-//        [PHAssetChangeRequest creationRequestForAssetFromImage:image];
-//    } completionHandler:^(BOOL success, NSError * _Nullable error) {
-//        if (success)
-//        {
-//            NSLog(@"Image saved.");
-//        }
-//        else
-//        {
-//            NSLog(@"error in saving image : %@", error);
-//        }
-//    }];
-    
     if (PHPhotoLibrary.authorizationStatus != PHAuthorizationStatusAuthorized)
     {
         [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) {
