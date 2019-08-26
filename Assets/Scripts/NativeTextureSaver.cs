@@ -88,30 +88,21 @@ public class NativeTextureSaver : MonoBehaviour
 
         _image.texture = _buffer;
 
-        RenderTexture tmp = RenderTexture.active;
-        RenderTexture.active = _buffer;
-
-        // ReadPixels needs to be called for uploading buffer data to the GPU (Maybe I think)
-        // If you delete these lines, the native plugin will miss to load pixels from the buffer.
-        Texture2D texture = new Texture2D(_buffer.width, _buffer.height, TextureFormat.RGB24, false);
-        texture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
-        texture.Apply();
-        RenderTexture.active = tmp;
-
-        // Use texture if needed.
-        // This demo don't have to use the texture so destroy it immediatory.
-        Destroy(texture);
+        yield return _waitForEndOfFrame;
 
         Debug.Log("Will show the texture.");
 
+#if UNITY_IOS
         _SaveTextureImpl(_buffer.GetNativeTexturePtr(), gameObject.name, nameof(CallbackFromSaver));
-
+#else
         _isSaving = false;
+#endif
     }
 
     private void CallbackFromSaver(string message)
     {
         Debug.Log($"Callback from native plugin with message ${message}");
+        _isSaving = false;
     }
 
 #if UNITY_EDITOR
