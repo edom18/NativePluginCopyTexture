@@ -11,8 +11,16 @@
 // Please rewrite if needed.
 #import "nativetexturesaver-Swift.h"
 
-extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces);
-extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload();
+extern "C"
+{
+    void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces);
+    void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload();
+    void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces);
+    void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _AttachPlugin();
+    void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _SaveTextureImpl(unsigned char* mtlTexture, const char* objectName, const char* methodName);
+}
+
+void SaveTexture(unsigned char* mtlTexture, const char* objectName, const char* methodName);
 
 static IUnityGraphicsMetal* s_MetalGraphics = 0;
 static IUnityInterfaces*    s_UnityInterfaces  = 0;
@@ -49,7 +57,7 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
     };
 }
 
-extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces)
+void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces)
 {
     NSLog(@"==================== Plugin has been loaded ====================");
 
@@ -61,7 +69,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
     OnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
 }
 
-extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
+void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 {
     s_Graphics->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
 }
@@ -69,7 +77,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 ///
 /// Attach the functions to the callback of plugin loaded event.
 ///
-extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _AttachPlugin()
+void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _AttachPlugin()
 {
     NSLog(@"Attaching plugin load.");
     UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
@@ -78,7 +86,60 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _AttachPlugin()
 ///
 /// Save the texture that made from Metal to the file.
 ///
-extern "C" void _SaveTextureImpl(unsigned char* mtlTexture, const char* objectName, const char* methodName)
+void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API _SaveTextureImpl(unsigned char* mtlTexture, const char* objectName, const char* methodName)
+{
+    if (PHPhotoLibrary.authorizationStatus == PHAuthorizationStatusAuthorized)
+    {
+        SaveTexture(mtlTexture, objectName, methodName);
+        return;
+    }
+
+    [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) {
+        
+        if (status == PHAuthorizationStatusAuthorized)
+        {
+            SaveTexture(mtlTexture, objectName, methodName);
+            return;
+        }
+
+        if (status == PHAuthorizationStatusDenied)
+        {
+            NSString* title = @"Failed to save image";
+            NSString* message = @"Allow this app to access Photos.";
+
+            UIAlertController* alert = [UIAlertController alertControllerWithTitle:title
+                                                                           message:message
+                                                                    preferredStyle:UIAlertControllerStyleAlert];
+
+            UIAlertAction* settingsAction = [UIAlertAction actionWithTitle:@"Settings"
+                                                                     style:UIAlertActionStyleDefault
+                                                                   handler:^(UIAlertAction* action)
+                                                                   {
+                                                                        NSURL* settingsURL = [NSURL  URLWithString:UIApplicationOpenSettingsURLString];
+
+                                                                        if (!settingsURL)
+                                                                        {
+                                                                            return;
+                                                                        }
+
+                                                                        [UIApplication.sharedApplication openURL:settingsURL
+                                                                                                         options:@{}
+                                                                                               completionHandler:nil];
+                                                                   }];
+
+            UIAlertAction* closeAction = [UIAlertAction actionWithTitle:@"Close"
+                                                                  style:UIAlertActionStyleCancel
+                                                                handler:nil];
+            [alert addAction:settingsAction];
+            [alert addAction:closeAction];
+            [UnityGetGLViewController() presentViewController:alert
+                                                     animated:YES
+                                                   completion:nil];
+        }
+    }];
+}
+
+void SaveTexture(unsigned char* mtlTexture, const char* objectName, const char* methodName)
 {
     id<MTLTexture> tex = (__bridge id<MTLTexture>)(void*)mtlTexture;
     
@@ -87,35 +148,6 @@ extern "C" void _SaveTextureImpl(unsigned char* mtlTexture, const char* objectNa
     NSString* objName = [NSString stringWithCString:objectName encoding:NSUTF8StringEncoding];
     NSString* metName = [NSString stringWithCString:methodName encoding:NSUTF8StringEncoding];
     CaptureCallback *callback = [[CaptureCallback alloc] initWithObjectName:objName methodName:metName];
-
-    if (PHPhotoLibrary.authorizationStatus != PHAuthorizationStatusAuthorized)
-    {
-        [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) {
-            
-            if (status == PHAuthorizationStatusAuthorized)
-            {
-                // フォトライブラリに写真を保存するなど、実施したいことをここに書く
-            }
-            else if (status == PHAuthorizationStatusDenied)
-            {
-//                NSString* title = @"Failed to save image";
-//                NSString* message = @"Allow this app to access Photos.";
-//
-//                let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-//                let settingsAction = UIAlertAction(title: "Settings", style: .default, handler: { (_) -> Void in
-//                    guard let settingsURL = URL(string: UIApplication.openSettingsURLString ) else {
-//                        return
-//                    }
-//                    UIApplication.shared.open(settingsURL, options: [:], completionHandler: nil)
-//                })
-//                let closeAction: UIAlertAction = UIAlertAction(title: "Close", style: .cancel, handler: nil)
-//                alert.addAction(settingsAction)
-//                alert.addAction(closeAction)
-//                self.present(alert, animated: true, completion: nil)
-            }
-        }];
-        return;
-    }
     
     __block NSString* localId;
     
@@ -157,40 +189,4 @@ extern "C" void _SaveTextureImpl(unsigned char* mtlTexture, const char* objectNa
                                                         }];
         }
     }];
-    
-//    UIImageWriteToSavedPhotosAlbum(image, callback, @selector(savingImageIsFinished:didFinishSavingWithError:contextInfo:), nil);
-}
-
-///
-/// Copy MTLTexture to a new one.
-/// This function won't be used for this demo.
-/// But I don't remove this code. It will help you.
-///
-id<MTLTexture> CopyTexture(id<MTLTexture> source)
-{
-    MTLTextureDescriptor *descriptor = [[MTLTextureDescriptor alloc] init];
-    descriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    descriptor.width = source.width;
-    descriptor.height = source.height;
-    
-    id<MTLTexture> texture = [s_MetalGraphics->MetalDevice() newTextureWithDescriptor:descriptor];
-
-    id<MTLCommandQueue> queue = [s_MetalGraphics->MetalDevice() newCommandQueue];
-    id<MTLCommandBuffer> buffer = [queue commandBuffer];
-    id<MTLBlitCommandEncoder> encoder = [buffer blitCommandEncoder];
-    [encoder copyFromTexture:source
-                 sourceSlice:0
-                 sourceLevel:0
-                sourceOrigin:MTLOriginMake(0, 0, 0)
-                  sourceSize:MTLSizeMake(source.width, source.height, source.depth)
-                   toTexture:texture
-            destinationSlice:0
-            destinationLevel:0
-           destinationOrigin:MTLOriginMake(0, 0, 0)];
-
-    [encoder endEncoding];
-    [buffer commit];
-    [buffer waitUntilCompleted];
-
-    return texture;
 }
